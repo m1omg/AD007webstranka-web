@@ -9,6 +9,27 @@
   var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   function $all(sel, root) { return Array.prototype.slice.call((root || doc).querySelectorAll(sel)); }
+
+  // potiahnutie prstom doľava/doprava: fn(1) = ďalší, fn(-1) = predchádzajúci.
+  // Vodorovný pohyb prsta by si inak vzal prehliadač na posúvanie stránky (prišlo by pointercancel
+  // namiesto pointerup) – CSS mu preto na týchto miestach nechá len zvislé posúvanie (touch-action: pan-y).
+  function onSwipe(el, mouseToo, fn) {
+    var x = null, y = 0, at = 0;
+    el.addEventListener('pointerdown', function (e) {
+      if (e.isPrimary && (mouseToo || e.pointerType !== 'mouse')) { x = e.clientX; y = e.clientY; }
+    });
+    el.addEventListener('pointercancel', function () { x = null; });
+    el.addEventListener('pointerup', function (e) {
+      if (x === null) return;
+      var dx = e.clientX - x, dy = e.clientY - y;
+      x = null;
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.2) { at = Date.now(); fn(dx < 0 ? 1 : -1); }
+    });
+    // kliknutie tesne po potiahnutí (prst začal napr. na tlačidle) sa nepočíta
+    el.addEventListener('click', function (e) {
+      if (Date.now() - at < 400) { e.preventDefault(); e.stopPropagation(); }
+    }, true);
+  }
   function icon(path) {
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + path + '</svg>';
   }
@@ -130,15 +151,7 @@
       if (e.key === 'ArrowLeft') { go(current - 1); }
       if (e.key === 'ArrowRight') { go(current + 1); }
     });
-    // potiahnutie prstom
-    var startX = null;
-    root.addEventListener('pointerdown', function (e) { if (e.pointerType !== 'mouse') startX = e.clientX; });
-    root.addEventListener('pointerup', function (e) {
-      if (startX === null) return;
-      var dx = e.clientX - startX;
-      startX = null;
-      if (Math.abs(dx) > 50) { go(current + (dx < 0 ? 1 : -1)); restart(); }
-    });
+    onSwipe(root, false, function (d) { go(current + d); restart(); });
 
     go(preview && preview.slide != null ? Math.min(preview.slide, slides.length - 1) : 0);
     restart();
@@ -171,12 +184,7 @@
       if (e.key === 'ArrowLeft') show(boxIndex - 1);
       if (e.key === 'ArrowRight') show(boxIndex + 1);
     });
-    var sx = null;
-    box.addEventListener('pointerdown', function (e) { sx = e.clientX; });
-    box.addEventListener('pointerup', function (e) {
-      if (sx !== null && Math.abs(e.clientX - sx) > 50) show(boxIndex + (e.clientX < sx ? 1 : -1));
-      sx = null;
-    });
+    onSwipe(box, true, function (d) { show(boxIndex + d); });
   }
   function show(i) {
     boxIndex = (i + boxItems.length) % boxItems.length;

@@ -257,6 +257,7 @@ h3 { font-weight: 700; font-size: 1.2rem; }
   /* vlastné pozadie z editora príde ako style="background-image:…" priamo na .hero */
   background: #d9dadb url(../img/hero-bg.jpg) center / cover no-repeat;
   isolation: isolate;
+  touch-action: pan-y pinch-zoom;     /* vodorovné potiahnutie prstom prepína snímky (site.js) */
 }
 .slides { position: absolute; inset: 0; }
 .slide { position: absolute; inset: 0; opacity: 0; visibility: hidden; transition: opacity .9s ease, visibility .9s; }
@@ -294,7 +295,9 @@ h3 { font-weight: 700; font-size: 1.2rem; }
 .hero-arrow svg { width: 26px; height: 26px; }
 .hero-prev { left: 14px; }
 .hero-next { right: 14px; }
-.hero-dots { position: absolute; left: 0; right: 0; bottom: 22px; z-index: 3; display: flex; justify-content: center; gap: 10px; }
+/* pás s bodkami je cez celú šírku – prázdne miesto nesmie zakrývať šípky (na mobile sú v rovnakej výške) */
+.hero-dots { position: absolute; left: 0; right: 0; bottom: 22px; z-index: 3; display: flex; justify-content: center; gap: 10px; pointer-events: none; }
+.hero-dots button { pointer-events: auto; }
 .hero-dots button {
   width: 14px; height: 14px; padding: 0; border: 2px solid var(--c-dark); border-radius: 50%;
   background: rgba(255, 255, 255, .8); cursor: pointer; transition: width .3s, background .3s;
@@ -563,6 +566,7 @@ html[data-frame="hexagon"] .frame:not(.is-cover) img { padding: 15%; }
 .lightbox {
   width: 100vw; height: 100vh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0;
   background: rgba(20, 24, 21, .92); color: #fff;
+  touch-action: pan-y pinch-zoom;     /* potiahnutie prstom = ďalší / predchádzajúci obrázok */
 }
 .lightbox[open] { display: grid; grid-template-rows: 1fr auto; place-items: center; }
 .lightbox::backdrop { background: rgba(0, 0, 0, .5); }
