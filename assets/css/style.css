@@ -284,6 +284,10 @@ h3 { font-weight: 700; font-size: 1.2rem; }
 .slide-text { margin: 0 0 1.1em; font: 800 clamp(1.15rem, .8rem + 1vw, 1.8rem)/1.35 var(--font-head); color: var(--c-dark); }
 .slide.is-active .slide-title, .slide.is-active .slide-img, .slide.is-active .slide-body { transform: translate(0); opacity: 1; }
 .slide.is-active .slide-img { transform: translate(-50%, 0); }
+/* susedná snímka pri ťahaní prstom / ručnom prepnutí: hotová, bez postupného nábehu (posúva ju site.js) */
+.slide.is-peek { opacity: 1; visibility: visible; transition: none; }
+.slide.is-peek .slide-title, .slide.is-peek .slide-img, .slide.is-peek .slide-body { transform: translate(0); opacity: 1; transition: none; }
+.slide.is-peek .slide-img { transform: translate(-50%, 0); }
 
 .hero-arrow {
   position: absolute; top: 50%; z-index: 3; width: 58px; height: 58px; margin-top: -29px; padding: 0;
@@ -571,6 +575,11 @@ html[data-frame="hexagon"] .frame:not(.is-cover) img { padding: 15%; }
 .lightbox[open] { display: grid; grid-template-rows: 1fr auto; place-items: center; }
 .lightbox::backdrop { background: rgba(0, 0, 0, .5); }
 .lightbox img { max-width: min(92vw, 1600px); max-height: 82vh; width: auto; height: auto; object-fit: contain; border-radius: 8px; }
+/* ďalší / predchádzajúci obrázok krátko vkĺzne zo strany, odkiaľ prišiel */
+.lightbox img.lb-in-next { animation: lb-in-next .26s cubic-bezier(.2, .8, .2, 1); }
+.lightbox img.lb-in-prev { animation: lb-in-prev .26s cubic-bezier(.2, .8, .2, 1); }
+@keyframes lb-in-next { from { opacity: 0; transform: translateX(48px); } }
+@keyframes lb-in-prev { from { opacity: 0; transform: translateX(-48px); } }
 .lightbox p { margin: 0; padding: 14px 70px 24px; text-align: center; min-height: 3em; }
 .lb-btn {
   position: fixed; width: 54px; height: 54px; border: 0; border-radius: var(--r-small); cursor: pointer;

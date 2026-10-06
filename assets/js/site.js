@@ -10,20 +10,32 @@
 
   function $all(sel, root) { return Array.prototype.slice.call((root || doc).querySelectorAll(sel)); }
 
-  // potiahnutie prstom doľava/doprava: fn(1) = ďalší, fn(-1) = predchádzajúci.
+  // potiahnutie prstom doľava/doprava. h.move(dx) – počas vodorovného ťahania (nepovinné),
+  // h.end(dx, v) – po pustení: posun v px a rýchlosť v px/ms (0, ak pohyb nebol vodorovný).
   // Vodorovný pohyb prsta by si inak vzal prehliadač na posúvanie stránky (prišlo by pointercancel
   // namiesto pointerup) – CSS mu preto na týchto miestach nechá len zvislé posúvanie (touch-action: pan-y).
-  function onSwipe(el, mouseToo, fn) {
-    var x = null, y = 0, at = 0;
+  function onSwipe(el, mouseToo, h) {
+    var x = null, y = 0, t = 0, drag = false, at = 0;
     el.addEventListener('pointerdown', function (e) {
-      if (e.isPrimary && (mouseToo || e.pointerType !== 'mouse')) { x = e.clientX; y = e.clientY; }
+      if (e.isPrimary && (mouseToo || e.pointerType !== 'mouse')) { x = e.clientX; y = e.clientY; t = e.timeStamp; drag = false; }
     });
-    el.addEventListener('pointercancel', function () { x = null; });
-    el.addEventListener('pointerup', function (e) {
-      if (x === null) return;
-      var dx = e.clientX - x, dy = e.clientY - y;
+    el.addEventListener('pointermove', function (e) {
+      if (x === null || !h.move || !e.isPrimary) return;
+      var dx = e.clientX - x;
+      if (!drag && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(e.clientY - y)) drag = true;
+      if (drag) h.move(dx);
+    });
+    el.addEventListener('pointercancel', function () {
+      if (x !== null && drag) h.end(0, 0);       // prehliadač si gesto vzal (napr. zvislé posúvanie)
       x = null;
-      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.2) { at = Date.now(); fn(dx < 0 ? 1 : -1); }
+    });
+    el.addEventListener('pointerup', function (e) {
+      if (x === null || !e.isPrimary) return;
+      var dx = e.clientX - x, dy = e.clientY - y;
+      var flat = drag || Math.abs(dx) > Math.abs(dy) * 1.2;
+      x = null;
+      if (flat && (drag || Math.abs(dx) > 40)) at = Date.now();
+      h.end(flat ? dx : 0, flat ? dx / Math.max(1, e.timeStamp - t) : 0);
     });
     // kliknutie tesne po potiahnutí (prst začal napr. na tlačidle) sa nepočíta
     el.addEventListener('click', function (e) {
@@ -111,7 +123,7 @@
       var b = doc.createElement('button');
       b.type = 'button';
       b.setAttribute('aria-label', 'Snímka ' + (i + 1) + ' z ' + slides.length);
-      b.addEventListener('click', function () { go(i); restart(); });
+      b.addEventListener('click', function () { slideTo(i); restart(); });
       dots.appendChild(b);
       return b;
     });
@@ -121,7 +133,7 @@
       b.className = 'hero-arrow ' + cls;
       b.setAttribute('aria-label', label);
       b.innerHTML = icon(path);
-      b.addEventListener('click', function () { go(current + step); restart(); });
+      b.addEventListener('click', function () { slideBy(step); restart(); });
       root.appendChild(b);
     }
     arrow('hero-prev', 'Predchádzajúca snímka', '<path d="M15 4 7 12l8 8"/>', -1);
@@ -140,18 +152,96 @@
     }
     function restart() {
       clearInterval(timer);
-      if (reduceMotion || preview || paused || stopped) return;
-      timer = setInterval(function () { if (!doc.hidden) go(current + 1); }, delay);
+      if (reduceMotion || preview || paused || stopped || held) return;
+      // automatické prepínanie ostáva pomalé prelínanie (go), ručné je rýchly posun (slideTo)
+      timer = setInterval(function () { if (!doc.hidden) { if (finishing) finishing(); go(current + 1); } }, delay);
     }
+
+    /* ručné prepnutie – potiahnutie prstom, šípky, bodky, klávesy: celá snímka sa rýchlo posunie
+       do strany a susedná príde za ňou; pri ťahaní ide snímka priamo za prstom */
+    var held = false;          // prst práve ťahá snímku
+    var finishing = null;      // dokončí rozbehnutý posun (keď príde ďalší pokyn skôr)
+    var dragD = 0;             // smer ťahania: 1 = k ďalšej snímke, -1 k predchádzajúcej
+    function idx(n) { return (n + slides.length) % slides.length; }
+    function place(s, x, ms) {
+      s.style.transition = ms ? 'transform ' + ms + 'ms cubic-bezier(.2, .8, .2, 1)' : 'none';
+      s.style.transform = 'translateX(' + x + 'px)';
+    }
+    function rest(s) {         // snímka späť do pokoja, bez animácie
+      s.style.transition = 'none';
+      s.classList.remove('is-peek');
+      s.style.transform = '';
+      void s.offsetWidth;
+      s.style.transition = '';
+    }
+    function peek(i, x) { place(slides[i], x, 0); slides[i].classList.add('is-peek'); }
+    // n = cieľová snímka, d = smer (1 = príde sprava), from = doterajší posun prstom
+    function slideTo(n, d, from) {
+      if (finishing) finishing();
+      n = idx(n);
+      if (n === current) return;
+      d = d || (n > current ? 1 : -1);
+      from = from || 0;
+      var cur = slides[current], nxt = slides[n], W = root.clientWidth || 1;
+      peek(n, d * W + from);
+      place(cur, from, 0);
+      void nxt.offsetWidth;
+      var ms = Math.round(Math.max(200, 420 * (1 - Math.abs(from) / W)));   // zvyšok dráhy, nie celá
+      place(cur, -d * W, ms);
+      place(nxt, 0, ms);
+      var t = setTimeout(done, ms + 40);
+      function done() {
+        clearTimeout(t);
+        finishing = null;
+        cur.style.transition = 'none';   // odchádzajúca snímka zmizne hneď, bez prelínania
+        go(n);
+        rest(cur);
+        rest(nxt);
+      }
+      finishing = done;
+    }
+    function slideBy(step) { if (finishing) finishing(); slideTo(current + step, step); }
+
     root.addEventListener('mouseenter', function () { paused = true; restart(); });
     root.addEventListener('mouseleave', function () { paused = false; restart(); });
     root.addEventListener('focusin', function () { paused = true; restart(); });
     root.addEventListener('focusout', function (e) { if (!root.contains(e.relatedTarget)) { paused = false; restart(); } });
     root.addEventListener('keydown', function (e) {
-      if (e.key === 'ArrowLeft') { go(current - 1); }
-      if (e.key === 'ArrowRight') { go(current + 1); }
+      if (e.key === 'ArrowLeft') slideBy(-1);
+      if (e.key === 'ArrowRight') slideBy(1);
     });
-    onSwipe(root, false, function (d) { go(current + d); restart(); });
+    onSwipe(root, false, {
+      move: function (dx) {
+        if (finishing) finishing();
+        held = true;
+        clearInterval(timer);
+        var d = dx < 0 ? 1 : -1, W = root.clientWidth || 1;
+        if (d !== dragD) {             // zmena smeru: z druhej strany príde iná snímka
+          if (dragD) rest(slides[idx(current + dragD)]);
+          dragD = d;
+        }
+        place(slides[current], dx, 0);
+        peek(idx(current + d), d * W + dx);
+      },
+      end: function (dx, v) {
+        var d = dragD, W = root.clientWidth || 1;
+        dragD = 0;
+        held = false;
+        if (d && (dx < 0 ? 1 : -1) === d && (Math.abs(dx) > W * 0.2 || (Math.abs(v) > 0.35 && Math.abs(dx) > 20))) {
+          slideTo(current + d, d, dx);   // dosť ďaleko alebo rýchlo → dobehne na susednú snímku
+        } else if (d) {                  // krátke potiahnutie: snímka sa vráti na miesto
+          var cur = slides[current], nb = slides[idx(current + d)];
+          var back = function () { clearTimeout(t); finishing = null; rest(cur); rest(nb); };
+          place(cur, 0, 220);
+          place(nb, d * W, 220);
+          var t = setTimeout(back, 260);
+          finishing = back;
+        } else if (Math.abs(dx) > 40) {  // rýchle švihnutie bez ťahania
+          slideBy(dx < 0 ? 1 : -1);
+        }
+        restart();
+      }
+    });
 
     go(preview && preview.slide != null ? Math.min(preview.slide, slides.length - 1) : 0);
     restart();
@@ -177,21 +267,24 @@
       '<button type="button" class="lb-btn lb-next" aria-label="Ďalší obrázok">' + icon('<path d="m9 4 8 8-8 8"/>') + '</button>';
     doc.body.appendChild(box);
     box.querySelector('.lb-close').addEventListener('click', function () { box.close(); });
-    box.querySelector('.lb-prev').addEventListener('click', function () { show(boxIndex - 1); });
-    box.querySelector('.lb-next').addEventListener('click', function () { show(boxIndex + 1); });
+    box.querySelector('.lb-prev').addEventListener('click', function () { show(boxIndex - 1, -1); });
+    box.querySelector('.lb-next').addEventListener('click', function () { show(boxIndex + 1, 1); });
     box.addEventListener('click', function (e) { if (e.target === box) box.close(); });
     box.addEventListener('keydown', function (e) {
-      if (e.key === 'ArrowLeft') show(boxIndex - 1);
-      if (e.key === 'ArrowRight') show(boxIndex + 1);
+      if (e.key === 'ArrowLeft') show(boxIndex - 1, -1);
+      if (e.key === 'ArrowRight') show(boxIndex + 1, 1);
     });
-    onSwipe(box, true, function (d) { show(boxIndex + d); });
+    onSwipe(box, true, { end: function (dx) { if (Math.abs(dx) > 40) show(boxIndex + (dx < 0 ? 1 : -1), dx < 0 ? 1 : -1); } });
   }
-  function show(i) {
+  // d = smer (1 ďalší, -1 predchádzajúci): nový obrázok krátko vkĺzne z tej strany
+  function show(i, d) {
     boxIndex = (i + boxItems.length) % boxItems.length;
     var el = boxItems[boxIndex];
     var img = box.querySelector('img');
     img.src = el.getAttribute('data-full');
     img.alt = el.getAttribute('data-caption') || '';
+    img.classList.remove('lb-in-next', 'lb-in-prev');
+    if (d) { void img.offsetWidth; img.classList.add(d > 0 ? 'lb-in-next' : 'lb-in-prev'); }
     box.querySelector('p').textContent = el.getAttribute('data-caption') || '';
     var multi = boxItems.length > 1;
     box.querySelector('.lb-prev').hidden = !multi;
