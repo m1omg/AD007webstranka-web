@@ -55,10 +55,11 @@
   --frame-clip: none;
   --wrap: 1320px;
   --gutter: clamp(16px, 4vw, 60px);
-  /* logo: veľkosť v % z editora (Vzhľad a logo → Veľkosť loga), hlavička sa mu prispôsobí */
+  /* logo z editora (Vzhľad a logo): veľkosť v % a okraje nad a pod ním v px; hlavička = logo (aspoň ako pri 100 %) + okraje */
   --logo-size: 100;
+  --logo-pad: 15;
   --logo-h: calc(74px * var(--logo-size) / 100);
-  --header-h: max(104px, var(--logo-h) + 30px);
+  --header-h: calc(max(74px, var(--logo-h)) + var(--logo-pad) * 2px);
   --space: clamp(48px, 7vw, 110px);
   --shadow-soft: -10px 12px 26px rgba(25, 108, 45, .24);
 }
@@ -214,8 +215,8 @@ h3 { font-weight: 700; font-size: 1.2rem; }
 .nav-open .nav-toggle span:first-child::after { transform: translateY(-7px) rotate(-45deg); }
 
 @media (max-width: 1100px) {
-  /* na mobile je logo menšie a hlavička nanajvýš 94 px vysoká */
-  :root { --logo-h: min(48px * var(--logo-size) / 100, 64px); --header-h: max(78px, var(--logo-h) + 30px); }
+  /* na mobile je logo nanajvýš 64 px vysoké a okraje nanajvýš 20 px */
+  :root { --logo-h: min(48px * var(--logo-size) / 100, 64px); --header-h: calc(max(48px, var(--logo-h)) + min(var(--logo-pad), 20) * 2px); }
   .logo-placeholder { width: max(120px, 150px * var(--logo-size) / 100); max-width: max(150px, 42vw); }
   .js .nav-toggle { display: grid; }
   .js .main-nav {
