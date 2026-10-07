@@ -639,6 +639,10 @@ html[data-frame="hexagon"] .frame:not(.is-cover) img { padding: 15%; }
 .contact-form-title { text-transform: uppercase; text-align: center; font-size: clamp(1.15rem, 1rem + .6vw, 1.5rem); }
 .contact-grid .order-form { grid-template-columns: 1fr; }
 .contact-grid .fields { grid-template-columns: 1fr; }
+/* bez mapy jeden stĺpec v strede; bez formulára (Objednávka nie je na webe) mapa na celú šírku */
+.contact-grid.no-map { grid-template-columns: minmax(0, 760px); justify-content: center; }
+.contact-grid.no-side { grid-template-columns: minmax(0, 1fr); }
+.contact-pres { display: grid; place-items: center; align-self: center; }
 @media (max-width: 900px) { .contact-grid { grid-template-columns: 1fr; } }
 
 /* ==========================================================================
