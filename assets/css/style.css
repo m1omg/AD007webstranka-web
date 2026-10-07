@@ -55,7 +55,10 @@
   --frame-clip: none;
   --wrap: 1320px;
   --gutter: clamp(16px, 4vw, 60px);
-  --header-h: 104px;
+  /* logo: veľkosť v % z editora (Vzhľad a logo → Veľkosť loga), hlavička sa mu prispôsobí */
+  --logo-size: 100;
+  --logo-h: calc(74px * var(--logo-size) / 100);
+  --header-h: max(104px, var(--logo-h) + 30px);
   --space: clamp(48px, 7vw, 110px);
   --shadow-soft: -10px 12px 26px rgba(25, 108, 45, .24);
 }
@@ -143,11 +146,11 @@ h3 { font-weight: 700; font-size: 1.2rem; }
 .header-inner { height: 100%; display: flex; align-items: center; gap: clamp(20px, 3vw, 56px); }
 
 .logo { flex: none; display: flex; align-items: center; text-decoration: none; color: var(--c-text); }
-.logo img { max-height: calc(var(--header-h) - 30px); max-width: min(260px, 42vw); width: auto; object-fit: contain; }
+.logo img { max-height: var(--logo-h); max-width: min(260px * var(--logo-size) / 100, 42vw); width: auto; object-fit: contain; }
 /* zástupné pole, kým nie je nahrané vlastné logo */
 .logo-placeholder {
   display: inline-flex; align-items: center; justify-content: center; gap: .55em;
-  width: 190px; height: calc(var(--header-h) - 40px); min-height: 44px;
+  width: max(140px, 190px * var(--logo-size) / 100); max-width: max(190px, 42vw); height: max(44px, var(--logo-h) - 10px);
   border: 2px dashed var(--c-main); border-radius: 12px;
   background: repeating-linear-gradient(-45deg, rgba(255, 255, 255, .8) 0 10px, rgba(193, 232, 52, .16) 10px 20px);
   color: var(--c-dark); font: 800 .8rem/1 var(--font-head); text-transform: uppercase; letter-spacing: .14em;
@@ -211,8 +214,9 @@ h3 { font-weight: 700; font-size: 1.2rem; }
 .nav-open .nav-toggle span:first-child::after { transform: translateY(-7px) rotate(-45deg); }
 
 @media (max-width: 1100px) {
-  :root { --header-h: 78px; }
-  .logo-placeholder { width: 150px; }
+  /* na mobile je logo menšie a hlavička nanajvýš 94 px vysoká */
+  :root { --logo-h: min(48px * var(--logo-size) / 100, 64px); --header-h: max(78px, var(--logo-h) + 30px); }
+  .logo-placeholder { width: max(120px, 150px * var(--logo-size) / 100); max-width: max(150px, 42vw); }
   .js .nav-toggle { display: grid; }
   .js .main-nav {
     position: fixed; left: 0; right: 0; top: var(--header-h);
