@@ -58,6 +58,7 @@
   /* logo z editora (Vzhľad a logo): veľkosť v % a okraje nad a pod ním v px; hlavička = logo (aspoň ako pri 100 %) + okraje */
   --logo-size: 100;
   --logo-pad: 15;
+  --card-size: 100;               /* veľkosť obrázkov v kartách produktov v % */
   --logo-h: calc(74px * var(--logo-size) / 100);
   --header-h: calc(max(74px, var(--logo-h)) + var(--logo-pad) * 2px);
   --space: clamp(48px, 7vw, 110px);
@@ -382,7 +383,7 @@ html:not(.js) .slide .slide-img { transform: translate(-50%, 0); opacity: 1; }
 .rich blockquote { margin: 1.5em 0; padding: 1em 1.4em; border-left: 4px solid var(--c-main); background: rgba(255, 255, 255, .5); border-radius: 0 18px 18px 0; }
 
 /* ---------- karty produktov ---------- */
-.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); gap: 44px 30px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, max(200px, 230px * var(--card-size) / 100)), 1fr)); gap: 44px 30px; }
 .card { display: block; text-align: center; text-decoration: none; color: var(--c-text); }
 .card h3 { margin: 1.1em 0 .4em; font-weight: 800; font-size: 1.15rem; }
 .card p { margin: 0; font-size: .95em; }
@@ -399,7 +400,7 @@ html:not(.js) .slide .slide-img { transform: translate(-50%, 0); opacity: 1; }
 .frame.is-cover img { object-fit: cover; padding: 0; }
 html[data-frame="hexagon"] .frame:not(.is-cover) img { padding: 15%; }
 .card:hover .frame { transform: translateY(-6px); outline-offset: 12px; }
-.card .frame { width: min(100%, 250px); margin-inline: auto; }
+.card .frame { width: min(100%, 250px * var(--card-size) / 100); margin-inline: auto; }
 
 /* ==========================================================================
    Objednávkový formulár
